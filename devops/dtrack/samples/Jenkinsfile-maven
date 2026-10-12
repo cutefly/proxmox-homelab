@@ -1,0 +1,85 @@
+// Jenkins Declarative Pipeline 샘플: Maven Spring Boot -> Dependency-Track
+//
+// [사전 준비]
+// 1. Jenkins 관리 > Manage Credentials 에 Secret text 타입으로 API Key 등록:
+//    - ID: dependency-track-api-key
+//    - Secret: <Dependency-Track에서 발급받은 API 키>
+
+pipeline {
+    agent any
+
+    environment {
+        // Nginx Proxy Manager를 통해 라우팅되는 Dependency-Track API URL
+        DTRACK_API_URL = 'https://dtrack.club012.com/api'
+        // Jenkins Credentials 주입
+        DTRACK_CRED = credentials('dependency-track-api-key')
+    }
+
+    stages {
+        stage('Checkout') {
+            steps {
+                checkout scm
+            }
+        }
+
+        stage('Build & Generate SBOM') {
+            steps {
+                echo 'Building Spring Boot application and generating CycloneDX SBOM...'
+                // pom.xml에 cyclonedx-maven-plugin이 포함된 경우
+                sh 'mvn clean package -DskipTests'
+                // 플러그인이 없는 경우 직접 생성:
+                // sh 'mvn org.cyclonedx:cyclonedx-maven-plugin:2.8.0:makeAggregateBom -DoutputFormat=json -DoutputName=bom'
+            }
+        }
+
+        stage('Upload SBOM to Dependency-Track') {
+            steps {
+                script {
+                    echo "Uploading target/bom.json to ${DTRACK_API_URL}..."
+                    
+                    // 방법 1: Curl 기반 범용 전송 (추가 플러그인 불필요)
+                    sh '''
+                        HTTP_STATUS=$(curl -s -o response.txt -w "%{http_code}" -X POST "${DTRACK_API_URL}/v1/bom" \
+                          -H "X-Api-Key: ${DTRACK_CRED}" \
+                          -H "Content-Type: multipart/form-data" \
+                          -F "autoCreate=true" \
+                          -F "projectName=${JOB_BASE_NAME}" \
+                          -F "projectVersion=${BUILD_NUMBER}" \
+                          -F "bom=@target/bom.json")
+
+                        echo "Dependency-Track HTTP Response Status: ${HTTP_STATUS}"
+                        cat response.txt && echo ""
+
+                        if [ "${HTTP_STATUS}" -ne 200 ]; then
+                            echo "Error: SBOM upload failed!"
+                            exit 1
+                        fi
+                    '''
+
+                    /* 방법 2: Dependency-Track Jenkins Plugin 사용 시 (플러그인 설치 환경)
+                    dependencyTrackPublisher(
+                        artifact: 'target/bom.json',
+                        projectName: "${JOB_BASE_NAME}",
+                        projectVersion: "${BUILD_NUMBER}",
+                        autoCreateProjects: true,
+                        synchronous: true // 분석 완료 대기 및 Jenkins UI 차트 연동
+                    )
+                    */
+                }
+            }
+        }
+    }
+
+    post {
+        always {
+            // SBOM 파일을 빌드 아티팩트로 보관
+            archiveArtifacts artifacts: 'target/bom.json', allowEmptyArchive: true
+        }
+        success {
+            echo 'SBOM successfully generated and submitted to Dependency-Track!'
+        }
+        failure {
+            echo 'Pipeline failed. Check build logs for details.'
+        }
+    }
+}

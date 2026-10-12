@@ -1,0 +1,59 @@
+# GitLab CI 파이프라인 샘플: Node.js (JavaScript/TypeScript) -> Dependency-Track
+#
+# [사전 준비]
+# GitLab 프로젝트 Settings > CI/CD > Variables 에 아래 변수를 등록하세요:
+# - DTRACK_API_URL: https://dtrack.club012.com/api
+# - DTRACK_API_KEY: <Dependency-Track에서 발급받은 API 키> (Masked 설정 권장)
+
+stages:
+  - build
+  - sbom
+
+cache:
+  key: "${CI_COMMIT_REF_SLUG}"
+  paths:
+    - .npm/
+
+# 1. 의존성 설치 및 CycloneDX SBOM 생성
+build-and-generate-sbom:
+  stage: build
+  image: node:20-alpine
+  before_script:
+    - npm ci --cache .npm --prefer-offline
+  script:
+    # 프로덕션 런타임 의존성 기준 CycloneDX JSON 생성
+    - npx @cyclonedx/cyclonedx-npm --output-file bom.json --output-format JSON --omit dev
+  artifacts:
+    name: "sbom-${CI_COMMIT_REF_SLUG}"
+    paths:
+      - bom.json
+      - package.json
+    expire_in: 1 day
+
+# 2. Dependency-Track API로 SBOM 전송
+upload-sbom-to-dtrack:
+  stage: sbom
+  image: alpine:latest
+  needs:
+    - build-and-generate-sbom
+  before_script:
+    - apk add --no-cache curl jq
+  script:
+    - PKG_VERSION=$(jq -r .version package.json)
+    - echo "Uploading SBOM for ${CI_PROJECT_NAME} version ${PKG_VERSION}..."
+    - |
+      HTTP_STATUS=$(curl -s -o response.txt -w "%{http_code}" -X POST "${DTRACK_API_URL}/v1/bom" \
+        -H "X-Api-Key: ${DTRACK_API_KEY}" \
+        -H "Content-Type: multipart/form-data" \
+        -F "autoCreate=true" \
+        -F "projectName=${CI_PROJECT_NAME}" \
+        -F "projectVersion=${PKG_VERSION}" \
+        -F "bom=@bom.json")
+      
+      echo "Response HTTP Status: ${HTTP_STATUS}"
+      cat response.txt && echo ""
+      
+      if [ "${HTTP_STATUS}" -ne 200 ]; then
+        echo "Error: SBOM upload failed with status ${HTTP_STATUS}"
+        exit 1
+      fi
