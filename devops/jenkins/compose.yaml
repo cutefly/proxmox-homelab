@@ -1,0 +1,34 @@
+services:
+  jenkins: 
+    image: jenkins/jenkins:${JENKINS_IMAGE_TAG}
+    container_name: jenkins
+    restart: unless-stopped
+    user: jenkins
+    privileged: true
+    ports:
+      - 8080:8080
+      - 50000:50000
+    volumes:     
+      - ./volumes/jenkins:/var/jenkins_home
+  jenkins-agent01:
+    image: jenkins/ssh-agent
+    container_name: agent01
+    restart: unless-stopped
+    environment:
+      - TZ=Asia/Seoul
+      - JENKINS_AGENT_SSH_PUBKEY=ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQC8gNuL2bjDXsTHGLMM/aFnHn0/vey8H+Z3JQClqgvAGtTgTqq9ren3cUHcDIKKtWcTzI8jrnb5FndYMDctqgElTIMT5EI4GdC3efruk0KluA8OYaWD3UezdOXyRlI7oEl+W4rNSbuFKRmcUk0eMIi5Hag5Lgl6Q56IE5Rfr3/HLDjmE7Eo3e1/XxUe7w1CIwr5GXjDHQIq5V8ipZWmay4yNLOW4VojaYWBV0GRhr5aPMNKIcP460RkvLWy2NWKOhcmt8RYfMWPbqE9+6Y9IzEo8qKRaIYvGQPCkHTMWcPAYHCIBgaQdnILCryyFND1XKQuzG7T9X1GoRBynUyXTQ6V ssh-key-2024-07-08
+    volumes:
+      - ./volumes/agent01:/home/jenkins
+      - /var/run/docker.sock:/var/run/docker.sock
+      - $HOME/.m2:/home/jenkins/.m2
+  jenkins-agent02:
+    image: jenkins/ssh-agent
+    container_name: agent02
+    restart: unless-stopped
+    environment:
+      - TZ=Asia/Seoul
+      - JENKINS_AGENT_SSH_PUBKEY=ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQC8gNuL2bjDXsTHGLMM/aFnHn0/vey8H+Z3JQClqgvAGtTgTqq9ren3cUHcDIKKtWcTzI8jrnb5FndYMDctqgElTIMT5EI4GdC3efruk0KluA8OYaWD3UezdOXyRlI7oEl+W4rNSbuFKRmcUk0eMIi5Hag5Lgl6Q56IE5Rfr3/HLDjmE7Eo3e1/XxUe7w1CIwr5GXjDHQIq5V8ipZWmay4yNLOW4VojaYWBV0GRhr5aPMNKIcP460RkvLWy2NWKOhcmt8RYfMWPbqE9+6Y9IzEo8qKRaIYvGQPCkHTMWcPAYHCIBgaQdnILCryyFND1XKQuzG7T9X1GoRBynUyXTQ6V ssh-key-2024-07-08
+    volumes:
+      - ./volumes/agent02:/home/jenkins
+      - /var/run/docker.sock:/var/run/docker.sock
+      - $HOME/.m2:/home/jenkins/.m2

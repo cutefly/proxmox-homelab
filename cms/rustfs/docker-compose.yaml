@@ -1,0 +1,50 @@
+# docker compose up -d
+services:
+  rustfs:
+    image: rustfs/rustfs:${DOCKER_IMAGE_TAG:-latest}
+    container_name: rustfs
+    restart: always
+    ports:
+      - "9000:9000"   # API Port
+      - "9001:9001"   # Console / Management Port
+    environment:
+      - RUSTFS_ACCESS_KEY=${RUSTFS_ACCESS_KEY:-admin}
+      - RUSTFS_SECRET_KEY=${RUSTFS_SECRET_KEY}
+      # 저장 시 암호화(SSE) Master Key 설정 (32byte Base64 또는 Hex)
+      - RUSTFS_KMS_MASTER_KEY=${RUSTFS_KMS_MASTER_KEY}
+      - RUSTFS_SSE_S3_MASTER_KEY=${RUSTFS_SSE_S3_MASTER_KEY}
+      - RUSTFS_SSE_AUTO_ENCRYPT=true
+      # Configure Vault Transit
+      - RUSTFS_KMS_ENABLE=${RUSTFS_KMS_ENABLE:-false}
+      - RUSTFS_KMS_BACKEND=vault-transit
+      - RUSTFS_KMS_VAULT_ADDRESS=${VAULT_ADDR}
+      - RUSTFS_KMS_VAULT_TOKEN=${VAULT_TOKEN}
+      - RUSTFS_KMS_VAULT_MOUNT_PATH=transit
+      - RUSTFS_KMS_DEFAULT_KEY_ID=${RUSTFS_KMS_DEFAULT_KEY_ID}
+      # Configure Keycloak as an OpenID Connect identity provider
+      - RUSTFS_BROWSER_REDIRECT_URL=https://rustfs.club012.com
+      - RUSTFS_IDENTITY_OPENID_ENABLE=on
+      - RUSTFS_IDENTITY_OPENID_CONFIG_URL=https://keycloak.club012.com/realms/devops
+      - RUSTFS_IDENTITY_OPENID_CLIENT_ID=${KEYCLOAK_CLIENT_ID}
+      - RUSTFS_IDENTITY_OPENID_CLIENT_SECRET=${KEYCLOAK_CLIENT_SECRET}
+      - RUSTFS_IDENTITY_OPENID_SCOPES=openid,profile,email
+      - RUSTFS_IDENTITY_OPENID_REDIRECT_URI=https://rustfs.club012.com/rustfs/admin/v3/oidc/callback/default
+      - RUSTFS_IDENTITY_OPENID_REDIRECT_URI_DYNAMIC=off
+      - RUSTFS_IDENTITY_OPENID_DISPLAY_NAME=Keycloak
+      - RUSTFS_IDENTITY_OPENID_GROUPS_CLAIM=groups
+      - RUSTFS_IDENTITY_OPENID_ROLES_CLAIM=roles
+      - RUSTFS_IDENTITY_OPENID_EMAIL_CLAIM=email
+      - RUSTFS_IDENTITY_OPENID_USERNAME_CLAIM=preferred_username
+      #- RUSTFS_IDENTITY_OPENID_CLAIM_NAME=policy  # Keycloak 매퍼의 Token Claim Name과 일치
+      #- RUSTFS_IDENTITY_OPENID_CLAIM_USERINFO=on
+      #- RUSTFS_BROWSER_LOGIN_CLAIM=preferred_username
+
+    volumes:
+      - ./data:/data
+      - ./logs:/logs
+      - ./config:/etc/rustfs
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/health"]
+      interval: 30s
+      timeout: 20s
+      retries: 3
