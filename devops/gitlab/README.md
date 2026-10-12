@@ -3,11 +3,11 @@
 ## 배포 준비
 
 ```
-git init dockhand-stacks
-cd dockhand-stacks
+git init proxmox-homelab
+cd proxmox-homelab
 git branch -m master main
 git config core.sparseCheckout true
-git remote add -f origin https://github.com/cutefly/dockhand-stacks.git
+git remote add -f origin https://github.com/cutefly/proxmox-homelab.git
 echo "/devops/gitlab" > .git/info/sparse-checkout
 git pull origin main
 ```
