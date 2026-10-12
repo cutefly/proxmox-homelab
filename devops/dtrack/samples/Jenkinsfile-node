@@ -36,33 +36,34 @@ pipeline {
             steps {
                 script {
                     echo "Uploading bom.json to ${DTRACK_API_URL}..."
-                    sh '''
-                        # package.json 에서 버전 추출
-                        APP_VERSION=$(node -p "require('./package.json').version")
-                        echo "App version: ${APP_VERSION}"
+                    // package.json 에서 앱 버전 추출 (Groovy 및 쉘 공용)
+                    def appVersion = sh(script: "node -p \"require('./package.json').version\"", returnStdout: true).trim()
+                    echo "App version: ${appVersion}"
 
-                        HTTP_STATUS=$(curl -s -o response.txt -w "%{http_code}" -X POST "${DTRACK_API_URL}/v1/bom" \
-                          -H "X-Api-Key: ${DTRACK_CRED}" \
-                          -H "Content-Type: multipart/form-data" \
-                          -F "autoCreate=true" \
-                          -F "projectName=${JOB_BASE_NAME}" \
-                          -F "projectVersion=${APP_VERSION}" \
+                    // 방법 1: Curl 기반 범용 전송 (추가 플러그인 불필요)
+                    sh """
+                        HTTP_STATUS=\$(curl -s -o response.txt -w "%{http_code}" -X POST "\${DTRACK_API_URL}/v1/bom" \\
+                          -H "X-Api-Key: \${DTRACK_CRED}" \\
+                          -H "Content-Type: multipart/form-data" \\
+                          -F "autoCreate=true" \\
+                          -F "projectName=\${JOB_BASE_NAME}" \\
+                          -F "projectVersion=${appVersion}" \\
                           -F "bom=@bom.json")
 
-                        echo "Dependency-Track HTTP Response Status: ${HTTP_STATUS}"
+                        echo "Dependency-Track HTTP Response Status: \${HTTP_STATUS}"
                         cat response.txt && echo ""
 
-                        if [ "${HTTP_STATUS}" -ne 200 ]; then
+                        if [ "\${HTTP_STATUS}" -ne 200 ]; then
                             echo "Error: SBOM upload failed!"
                             exit 1
                         fi
-                    '''
+                    """
 
                     /* 방법 2: Dependency-Track Jenkins Plugin 사용 시 (플러그인 설치 환경)
                     dependencyTrackPublisher(
                         artifact: 'bom.json',
                         projectName: "${JOB_BASE_NAME}",
-                        projectVersion: "${APP_VERSION}",
+                        projectVersion: appVersion,
                         autoCreateProjects: true,
                         synchronous: true
                     )
@@ -85,3 +86,4 @@ pipeline {
         }
     }
 }
+

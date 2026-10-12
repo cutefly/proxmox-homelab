@@ -28,7 +28,7 @@ services:
       ALPINE_DATABASE_DRIVER: org.postgresql.Driver
       ALPINE_DATABASE_USERNAME: ${POSTGRES_USER:-dtrack}
       ALPINE_DATABASE_PASSWORD: ${POSTGRES_PASSWORD:-ChangeThisPassword123!}
-      EXTRA_JVM_ARGUMENTS: ${EXTRA_JVM_ARGUMENTS:--Xms2g -Xmx4g}
+      EXTRA_JAVA_OPTIONS: ${EXTRA_JAVA_OPTIONS:-${EXTRA_JVM_ARGUMENTS:--Xms2g -Xmx4g}}
     ports:
       - "${PORT_BACKEND:-8080}:8080"
     volumes:

@@ -53,7 +53,17 @@ PORT_FRONTEND=8081
 PORT_BACKEND=8080
 ```
 
-### (2) 서비스 시작
+### (2) 볼륨 디렉터리 생성 및 권한 설정
+`dtrack-apiserver` 컨테이너는 보안을 위해 내부적으로 비루트 사용자(`dtrack`, UID/GID 1000)로 실행됩니다.  
+바인드 마운트 디렉터리를 사전 생성하고 권한을 부여합니다:
+```bash
+mkdir -p volumes/db_data volumes/apiserver_data
+
+# Linux 호스트 환경인 경우 apiserver_data에 UID 1000 소유권 부여
+sudo chown -R 1000:1000 volumes/apiserver_data
+```
+
+### (3) 서비스 시작
 ```bash
 docker compose up -d
 ```
@@ -169,3 +179,4 @@ cat dtrack_backup_20261012.sql | docker exec -i dtrack-db psql -U dtrack dtrack
 ### 볼륨 데이터 디렉터리
 * `./volumes/db_data`: PostgreSQL 데이터베이스 파일
 * `./volumes/apiserver_data`: 취약점 데이터베이스 캐시 및 Lucene 인덱스 파일
+
