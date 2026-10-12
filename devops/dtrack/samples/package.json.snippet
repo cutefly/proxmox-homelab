@@ -1,0 +1,16 @@
+{
+  "_comment": "Node.js (JavaScript/TypeScript) package.json 에 추가할 스크립트 및 의존성 설정 스니펫",
+  "_usage_note": [
+    "1. package.json 의 scripts 및 devDependencies 에 아래 항목을 추가합니다.",
+    "2. 실행: npm run sbom",
+    "3. 결과: ./bom.json 파일 생성",
+    "※ devDependencies 설치 없이 일회성으로 실행하려면:",
+    "   npx @cyclonedx/cyclonedx-npm --output-file bom.json --output-format JSON --omit dev"
+  ],
+  "scripts": {
+    "sbom": "cyclonedx-npm --output-file bom.json --output-format JSON --omit dev"
+  },
+  "devDependencies": {
+    "@cyclonedx/cyclonedx-npm": "^1.19.0"
+  }
+}

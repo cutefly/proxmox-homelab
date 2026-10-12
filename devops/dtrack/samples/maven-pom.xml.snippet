@@ -1,0 +1,42 @@
+<!-- 
+  Maven pom.xml 에 추가할 CycloneDX 플러그인 설정 스니펫
+  
+  [사용 방법]
+  1. 프로젝트의 pom.xml <build><plugins> ... </plugins></build> 내부에 아래 설정을 추가합니다.
+  2. 실행 명령어:
+     - 빌드 시 함께 생성: mvn clean package -DskipTests
+     - SBOM 단독 생성: mvn cyclonedx:makeAggregateBom
+  3. 생성 결과 위치: target/bom.json
+-->
+
+<plugin>
+    <groupId>org.cyclonedx</groupId>
+    <artifactId>cyclonedx-maven-plugin</artifactId>
+    <version>2.8.0</version>
+    <executions>
+        <execution>
+            <phase>package</phase>
+            <goals>
+                <!-- 
+                  - 단일 모듈 프로젝트: makeBom
+                  - 멀티 모듈 프로젝트(권장): makeAggregateBom (모든 서브모듈 의존성을 하나의 bom.json으로 취합)
+                -->
+                <goal>makeAggregateBom</goal>
+            </goals>
+        </execution>
+    </executions>
+    <configuration>
+        <!-- 프로젝트 유형 (application, library, framework 등) -->
+        <projectType>application</projectType>
+        <!-- CycloneDX 스펙 버전 (1.4, 1.5, 1.6 지원) -->
+        <schemaVersion>1.5</schemaVersion>
+        <!-- BOM 시리얼 넘버 자동 생성 여부 -->
+        <includeBomSerialNumber>true</includeBomSerialNumber>
+        <!-- 출력 형식: json (Dependency-Track 권장) -->
+        <outputFormat>json</outputFormat>
+        <!-- 출력 파일 이름 (target/bom.json 으로 생성됨) -->
+        <outputName>bom</outputName>
+        <!-- 제공(provided), 테스트(test) 스코프 제외 여부 (필요 시 조정) -->
+        <includeTestScope>false</includeTestScope>
+    </configuration>
+</plugin>
