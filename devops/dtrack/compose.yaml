@@ -1,0 +1,46 @@
+services:
+  dtrack-db:
+    image: postgres:16-alpine
+    container_name: dtrack-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-dtrack}
+      POSTGRES_USER: ${POSTGRES_USER:-dtrack}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-ChangeThisPassword123!}
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER:-dtrack} -d $${POSTGRES_DB:-dtrack}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    volumes:
+      - ./volumes/db_data:/var/lib/postgresql/data
+
+  dtrack-apiserver:
+    image: dependencytrack/apiserver:${DTRACK_VERSION:-4.11.7}
+    container_name: dtrack-apiserver
+    restart: unless-stopped
+    depends_on:
+      dtrack-db:
+        condition: service_healthy
+    environment:
+      ALPINE_DATABASE_MODE: external
+      ALPINE_DATABASE_URL: jdbc:postgresql://dtrack-db:5432/${POSTGRES_DB:-dtrack}
+      ALPINE_DATABASE_DRIVER: org.postgresql.Driver
+      ALPINE_DATABASE_USERNAME: ${POSTGRES_USER:-dtrack}
+      ALPINE_DATABASE_PASSWORD: ${POSTGRES_PASSWORD:-ChangeThisPassword123!}
+      EXTRA_JVM_ARGUMENTS: ${EXTRA_JVM_ARGUMENTS:--Xms2g -Xmx4g}
+    ports:
+      - "${PORT_BACKEND:-8080}:8080"
+    volumes:
+      - ./volumes/apiserver_data:/data
+
+  dtrack-frontend:
+    image: dependencytrack/frontend:${DTRACK_VERSION:-4.11.7}
+    container_name: dtrack-frontend
+    restart: unless-stopped
+    depends_on:
+      - dtrack-apiserver
+    environment:
+      API_BASE_URL: ${API_BASE_URL:-https://dtrack.club012.com/api}
+    ports:
+      - "${PORT_FRONTEND:-8081}:8080"
