@@ -31,6 +31,8 @@ https://gitlab.club012.com/*
 
 ## upgrade path
 
+> https://gitlab-com.gitlab.io/support/toolbox/upgrade-path/
+
 ```
 16.11.5
 16.11.10
