@@ -1,5 +1,7 @@
 # OWASP Dependency-Track (SBOM 관리 시스템)
 
+> https://dependencytrack.github.io/docs/next/tutorials/quickstart/
+
 Proxmox Homelab 환경에서 SBOM(Software Bill of Materials)을 수집, 분석 및 관리하기 위한 OWASP Dependency-Track 구축 환경입니다.  
 Maven 기반 Spring Boot 및 Node.js 기반 JavaScript/TypeScript 프로젝트의 취약점(CVE)을 지속적으로 추적할 수 있습니다.
 
@@ -180,3 +182,14 @@ cat dtrack_backup_20261012.sql | docker exec -i dtrack-db psql -U dtrack dtrack
 * `./volumes/db_data`: PostgreSQL 데이터베이스 파일
 * `./volumes/apiserver_data`: 취약점 데이터베이스 캐시 및 Lucene 인덱스 파일
 
+## 배포 준비
+
+```
+git init proxmox-homelab
+cd proxmox-homelab
+git branch -m master main
+git config core.sparseCheckout true
+git remote add -f origin https://github.com/cutefly/proxmox-homelab.git
+echo "/devops/dtrack" > .git/info/sparse-checkout
+git pull origin main
+```

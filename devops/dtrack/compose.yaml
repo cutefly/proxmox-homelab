@@ -1,46 +1,51 @@
+name: Dependency-Track
+
 services:
-  dtrack-db:
-    image: postgres:16-alpine
-    container_name: dtrack-db
-    restart: unless-stopped
-    environment:
-      POSTGRES_DB: ${POSTGRES_DB:-dtrack}
-      POSTGRES_USER: ${POSTGRES_USER:-dtrack}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-ChangeThisPassword123!}
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER:-dtrack} -d $${POSTGRES_DB:-dtrack}"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-    volumes:
-      - ./volumes/db_data:/var/lib/postgresql/data
-
-  dtrack-apiserver:
-    image: dependencytrack/apiserver:${DTRACK_VERSION:-4.11.7}
-    container_name: dtrack-apiserver
-    restart: unless-stopped
+  apiserver:
+    image: ghcr.io/dependencytrack/apiserver:${DTRACK_VERSION:-5.2.0}
     depends_on:
-      dtrack-db:
+      postgres:
         condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          memory: 2g
     environment:
-      ALPINE_DATABASE_MODE: external
-      ALPINE_DATABASE_URL: jdbc:postgresql://dtrack-db:5432/${POSTGRES_DB:-dtrack}
-      ALPINE_DATABASE_DRIVER: org.postgresql.Driver
-      ALPINE_DATABASE_USERNAME: ${POSTGRES_USER:-dtrack}
-      ALPINE_DATABASE_PASSWORD: ${POSTGRES_PASSWORD:-ChangeThisPassword123!}
-      EXTRA_JAVA_OPTIONS: ${EXTRA_JAVA_OPTIONS:-${EXTRA_JVM_ARGUMENTS:--Xms2g -Xmx4g}}
+      DT_DATASOURCE_URL: "jdbc:postgresql://postgres:5432/dtrack"
+      DT_DATASOURCE_USERNAME: "dtrack"
+      DT_DATASOURCE_PASSWORD: "dtrack"
     ports:
-      - "${PORT_BACKEND:-8080}:8080"
+    # - "127.0.0.1:8080:8080"
+    - "${PORT_BACKEND:-8081}:8080"
     volumes:
-      - ./volumes/apiserver_data:/data
-
-  dtrack-frontend:
-    image: dependencytrack/frontend:${DTRACK_VERSION:-4.11.7}
-    container_name: dtrack-frontend
+    # - "apiserver-data:/data"
+    - "./volumes/dtrack:/data"
     restart: unless-stopped
-    depends_on:
-      - dtrack-apiserver
+
+  frontend:
+    image: ghcr.io/dependencytrack/frontend:5.2.0
     environment:
-      API_BASE_URL: ${API_BASE_URL:-https://dtrack.club012.com/api}
+      # API_BASE_URL: "http://localhost:8080"
+      API_BASE_URL: "${API_BASE_URL:-https://dtrack.club012.com}"
     ports:
-      - "${PORT_FRONTEND:-8081}:8080"
+    # - "127.0.0.1:8081:8080"
+    - "${PORT_FRONTEND:-8080}:8080"
+    restart: unless-stopped
+
+  postgres:
+    image: postgres:18-alpine
+    environment:
+      POSTGRES_DB: "${POSTGRES_DB:-dtrack}"
+      POSTGRES_USER: "${POSTGRES_USER:-dtrack}"
+      POSTGRES_PASSWORD: "${POSTGRES_PASSWORD:-dtrack}"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 3s
+      retries: 3
+    volumes:
+    - "postgres-data:/var/lib/postgresql"
+
+volumes:
+  # apiserver-data: {}
+  postgres-data: {}
