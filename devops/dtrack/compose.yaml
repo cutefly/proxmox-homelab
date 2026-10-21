@@ -14,11 +14,16 @@ services:
       DT_DATASOURCE_URL: "jdbc:postgresql://postgres:5432/dtrack"
       DT_DATASOURCE_USERNAME: "dtrack"
       DT_DATASOURCE_PASSWORD: "dtrack"
+      ALPINE_OIDC_ENABLED: ${OIDC_ENABLED:-false}
+      ALPINE_OIDC_CLIENT_ID: ${OIDC_CLIENT_ID:-dependency-track}
+      ALPINE_OIDC_ISSUER: ${OIDC_ISSUER:-https://keycloak.club012.com/auth/realms/dependency-track}
+      ALPINE_OIDC_USERNAME_CLAIM: preferred_username
+      ALPINE_OIDC_TEAMS_CLAIM: groups
+      ALPINE_OIDC_USER_PROVISIONING: true
+      ALPINE_OIDC_TEAM_SYNCHRONIZATION: true
     ports:
-    # - "127.0.0.1:8080:8080"
-    - "${PORT_BACKEND:-8080}:8080"
+      - "${PORT_BACKEND:-8080}:8080"
     volumes:
-    # - "apiserver-data:/data"
     - "./volumes/dtrack:/data"
     restart: unless-stopped
 
@@ -27,8 +32,9 @@ services:
     environment:
       # API_BASE_URL: "http://localhost:8080"
       API_BASE_URL: "${API_BASE_URL:-https://dtrack.club012.com}"
+      OIDC_ISSUER: ${OIDC_ISSUER:-https://keycloak.club012.com/auth/realms/dependency-track}
+      OIDC_CLIENT_ID: ${OIDC_CLIENT_ID:-dependency-track}
     ports:
-    # - "127.0.0.1:8081:8080"
     - "${PORT_FRONTEND:-8081}:8080"
     restart: unless-stopped
 
